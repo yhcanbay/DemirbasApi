@@ -1,0 +1,111 @@
+## ============================================================
+## .NET / ASP.NET Core — .gitignore
+## ============================================================
+
+# ---- Derleme Çıktıları ----
+# "bin" ve "obj" klasörleri derleme sırasında otomatik üretilir;
+# repoya eklenmez, her geliştirici kendi makinesinde derler.
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+
+# ---- .NET Kullanıcı Sırları (Secrets) ----
+# "dotnet user-secrets" ile saklanan hassas veriler — asla repoya girmemeli.
+**/secrets.json
+**/appsettings.local.json
+**/appsettings.Local.json
+
+# Geliştirme ortamına özel ayarlar kişisel kalmalı.
+# appsettings.Development.json PAYLAŞMAK istiyorsan bu satırı kaldır.
+# appsettings.Development.json
+
+# ---- NuGet Paket Önbelleği ----
+# NuGet paketleri zaten nuget.org'dan indirilir; repoda tutulmaz.
+*.nupkg
+*.snupkg
+**/[Pp]ackages/
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+# ---- Entity Framework Migrations ----
+# Migrations PAYLAŞILMALI — burayı yorum satırı olarak bırakıyoruz.
+# Eğer migration'ları repoya almak istemiyorsan yorumu kaldır:
+# **/Migrations/
+
+# ---- Visual Studio / VS Code ----
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# ---- Rider (JetBrains IDE) ----
+.idea/
+*.sln.iml
+
+# ---- Test Sonuçları ----
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+*.trx
+coverage*/
+*.coveragexml
+*.coverage
+
+# ---- Publish Çıktıları ----
+# "dotnet publish" ile üretilen dosyalar — deployment artifact'ları repoda tutulmaz.
+**/publish/
+**/PublishProfiles/
+
+# ---- Docker ----
+# Eğer projeye Docker eklenirse aşağıdaki satırı aktif et:
+# docker-compose.override.yml
+
+# ---- Geçici Dosyalar ----
+*~
+*.swp
+*.tmp
+*.bak
+*.orig
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ---- Windows ----
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# ---- Node.js (Frontend için) ----
+# Vue/Vite frontend'i de aynı repodaysa:
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---- Ortam Değişkenleri ----
+# Şifre, API key gibi hassas bilgileri asla repoya ekleme!
+.env
+.env.*
+!.env.example
+
+# ---- ReSharper ----
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
