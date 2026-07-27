@@ -20,6 +20,8 @@ public class AppDbContext : DbContext
     public DbSet<Asset> Assets => Set<Asset>();
     public DbSet<Personnel> Personnel => Set<Personnel>();
     public DbSet<AssetAssignment> AssetAssignments => Set<AssetAssignment>();
+    public DbSet<PersonnelDepartment> PersonnelDepartments => Set<PersonnelDepartment>();
+    public DbSet<Department> Departments => Set<Department>();
 
     // OnModelCreating = Spring'deki @Entity konfigürasyonunun kod karşılığı.
     // Tablo ilişkilerini, seed datayı ve kısıtlamaları burada tanımlarız.

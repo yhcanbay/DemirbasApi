@@ -15,7 +15,7 @@ namespace DemirbasTakip.Api.Controllers;
 //   Spring'deki @RestController (yani @Controller + @ResponseBody) ile aynı mantık.
 [ApiController]
 [Route("api/auth")]
-public class AuthController : ControllerBase
+public class AuthController : ControllerBase,IAuthController
 {
     // Servise interface üzerinden erişiyoruz — somut sınıfı (AuthService) bilmiyoruz.
     private readonly IAuthService _authService;
@@ -41,19 +41,28 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
-    // GET /api/auth/me
-    // [Authorize]: Bu endpoint'e erişmek için geçerli JWT token zorunlu.
-    //   Spring'deki @PreAuthorize("isAuthenticated()") ile aynı işlev.
-    [HttpGet("me")]
-    [Authorize]
-    public IActionResult Me()
-    {
-        // Token doğrulandıktan sonra, token içindeki claim'lere User property'sinden erişilir.
-        // Spring'de SecurityContextHolder.getContext().getAuthentication() ile alırdın.
-        var username = User.Identity?.Name;
-        var role = User.FindFirst(ClaimTypes.Role)?.Value;
+    // ============================================================
+    // MİKROSERVİS NOTU: GET /api/auth/me
+    // Bu endpoint şu an monolitik mimaride kullanılmamaktadır.
+    // Monolitik yapıda her [Authorize] attribute'ü token'ı zaten otomatik
+    // doğular; ayrıca bir /me endpoint'ine gerek yoktur.
+    //
+    // İleride mikroservis mimarisine geçilmesi durumunda bu endpoint devreye alınır:
+    //   - Asset Servisi, Kargo Servisi gibi bağımsız servisler JWT secret key'e
+    //     sahip olmaz; token'ı doğrulamak için Auth Servisi'ne (bu endpoint'e) sorar.
+    //   - Token iptali (logout, hesap askıya alma) senaryolarında da merkezi
+    //     doğrulama noktası olarak kullanılır.
+    //
+    // Aktif etmek için: aşağıdaki yorum satırlarını kaldır.
+    // ============================================================
 
-        // Anonim nesne (new { ... }) JSON olarak serialize edilip döndürülür.
-        return Ok(new { username, role });
-    }
+    //[HttpGet("me")]
+    //[Authorize]
+    //public IActionResult Me()
+    //{
+    //    var username = User.Identity?.Name;
+    //    var role = User.FindFirst(ClaimTypes.Role)?.Value;
+    //
+    //    return Ok(new { username, role });
+    //}
 }

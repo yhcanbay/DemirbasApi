@@ -8,8 +8,9 @@ public class Personnel
     // Ad Soyad
     public string FullName { get; set; } = string.Empty;
 
-    // Çalıştığı departman, örn: "Bilgi İşlem", "İnsan Kaynakları"
-    public string Department { get; set; } = string.Empty;
+    // Personelin çalıştığı departmanlar — M2M ilişki (geçmiş kayıtlar dahil).
+    // Aktif departman: PersonnelDepartments.Where(pd => pd.EndDate == null)
+    public ICollection<PersonnelDepartment> PersonnelDepartments { get; set; } = new List<PersonnelDepartment>();
 
     // Bu personele ait tüm zimmet kayıtları (geçmiş + aktif).
     public ICollection<AssetAssignment> Assignments { get; set; } = new List<AssetAssignment>();
