@@ -23,6 +23,24 @@ public class AuthController : ControllerBase,IAuthController
     // DI sistemi IAuthService'i otomatik olarak AuthService örneğiyle doldurur.
     public AuthController(IAuthService authService) => _authService = authService;
 
+    [HttpPost("register")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Register([FromBody] RegisterDto dto)
+    {
+        var result = await _authService.RegisterAsync(dto.Username, dto.Password, dto.RoleName);
+
+        // null = kullanıcı adı zaten mevcut
+        if (result is null)
+            return Conflict(new { message = "Bu kullanıcı adı zaten alınmış." });
+
+        // false = geçersiz rol adı
+        if (result == false)
+            return BadRequest(new { message = "Geçersiz rol adı. 'Admin' veya 'User' olmalıdır." });
+
+        // 201 Created: kayıt başarılı, istemci login sayfasına yönlendirilmeli.
+        return StatusCode(201, new { message = "Kayıt başarılı. Lütfen giriş yapınız." });
+    }
+
     // POST /api/auth/login
     // [HttpPost("login")] = Spring'deki @PostMapping("/login") ile aynı.
     // [FromBody] = request body'deki JSON'ı LoginDto nesnesine dönüştür.

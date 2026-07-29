@@ -45,4 +45,35 @@ public class AuthService : IAuthService
         var token = _tokenService.CreateToken(user);
         return new LoginResponseDto(token, user.Username, user.Role.Name);
     }
+
+    // Başarılı olursa true, kullanıcı adı zaten varsa null, geçersiz rol adıysa false döner.
+    public async Task<bool?> RegisterAsync(string username, string password, string roleName)
+    {
+        // Kullanıcı adı zaten var mı? AnyAsync = SQL'deki EXISTS gibi, çok performanslı.
+        var existingUser = await _context.Users.AnyAsync(u => u.Username == username);
+        if (existingUser)
+            return null;  // null = "kullanıcı adı zaten alınmış"
+
+        // Rol adı geçerli mi? ("Admin" veya "User" olmalı)
+        var role = await _context.Roles.FirstOrDefaultAsync(r => r.Name == roleName);
+        if (role is null)
+            return false;  // false = "geçersiz rol adı"
+
+        // Şifreyi hiçbir zaman düz metin saklamayız.
+        // BCrypt.HashPassword = Spring Security'deki BCryptPasswordEncoder.encode() gibi.
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
+
+        var user = new User
+        {
+            Username = username,
+            PasswordHash = passwordHash,
+            RoleId = role.Id,
+            Role = role
+        };
+
+        _context.Users.Add(user);          // Kullanıcıyı EF Core'un takip listesine ekle (bellekte)
+        await _context.SaveChangesAsync(); // Belleктeki değişikliği SQL INSERT'e dönüştür ve DB'ye yaz
+
+        return true;  // Kayıt başarılı
+    }
 }
