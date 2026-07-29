@@ -50,5 +50,22 @@ public class AppDbContext : DbContext
             .WithMany(personel => personel.Assignments)         // Personnel → AssetAssignment (1:N)
             .HasForeignKey(zimmet => zimmet.PersonnelId)        // Foreign key sütunu: PersonnelId
             .OnDelete(DeleteBehavior.Restrict);                 // Sil engellensin
+
+        // --- PersonnelDepartment İlişki Konfigürasyonları ---
+        // Personnel ↔ Department arasındaki M:N ilişkinin ara tablosu.
+        // İki farklı tabloya FK bağlı olduğu için AssetAssignment gibi
+        // SQL Server'ın "multiple cascade paths" hatasını önlemek amacıyla
+        // OnDelete(Restrict) tanımlanıyor.
+        modelBuilder.Entity<PersonnelDepartment>()
+            .HasOne(pd => pd.Personnel)                              // PersonnelDepartment → Personnel (N:1)
+            .WithMany(p => p.PersonnelDepartments)                   // Personnel → PersonnelDepartment (1:N)
+            .HasForeignKey(pd => pd.PersonnelId)                     // Foreign key sütunu: PersonnelId
+            .OnDelete(DeleteBehavior.Restrict);                      // Sil engellensin
+
+        modelBuilder.Entity<PersonnelDepartment>()
+            .HasOne(pd => pd.Department)                             // PersonnelDepartment → Department (N:1)
+            .WithMany(d => d.PersonnelDepartments)                   // Department → PersonnelDepartment (1:N)
+            .HasForeignKey(pd => pd.DepartmentId)                    // Foreign key sütunu: DepartmentId
+            .OnDelete(DeleteBehavior.Restrict);                      // Sil engellensin
     }
 }

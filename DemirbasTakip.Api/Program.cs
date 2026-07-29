@@ -9,7 +9,8 @@ using System.Text;                                     // Encoding.UTF8 için
 using DemirbasTakip.Api.Data;                          // AppDbContext için
 using DemirbasTakip.Api.Auth;                          // TokenService için
 using DemirbasTakip.Api.Services;                      // IAuthService, AuthService için
-using Scalar.AspNetCore;                               // Modern API dokümantasyon arayüzü
+using Scalar.AspNetCore;
+using Microsoft.AspNetCore.Authorization;                               // Modern API dokümantasyon arayüzü
 
 // ============================================================
 // BÖLÜM 1: Builder — Servisler (DI Container'a kayıt)
@@ -61,7 +62,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 // --- Yetkilendirme sistemini etkinleştir ---
 // [Authorize] ve [Authorize(Roles = "Admin")] attribute'lerinin çalışması için gerekli.
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 // --- CORS (Cross-Origin Resource Sharing) ---
 // Tarayıcı güvenlik politikası: frontend (Vue, localhost:5173) farklı port'tan backend'e istek atabilsin.
