@@ -52,4 +52,20 @@ public class TokenService
         // Dönen değer "xxxxx.yyyyy.zzzzz" formatında base64url encoded bir string'dir.
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    // Kullanıcı için yeni bir refresh token entity'si üretir.
+    // Token değeri olarak Guid kullanırız: kriptografik olarak güvenli ve tahmin edilemez.
+    // Dönen nesne henüz DB'ye kaydedilmemiştir — servis katmanı kaydeder.
+    public RefreshToken CreateRefreshToken(int userId)
+    {
+        var expireMinutes = double.Parse(_config["Jwt:RefreshTokenExpireMinutes"]!);
+
+        return new RefreshToken
+        {
+            Token = Guid.NewGuid().ToString(),  // Her çağrıda benzersiz, tahmin edilemez değer
+            UserId = userId,
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(expireMinutes)
+        };
+    }
 }

@@ -1,6 +1,6 @@
 namespace DemirbasTakip.Api.DTOs;
 
-// Başarılı login sonrasında istemciye dönecek cevap şablonu.
-// İçinde JWT token, kullanıcı adı ve rolü gönderilir.
-// İstemci bu token'ı bir sonraki isteklerde "Authorization: Bearer <token>" header'ında gönderir.
-public record LoginResponseDto(string Token, string Username, string Role);
+// Başarılı login ve token yenileme sonrasında istemciye dönecek cevap şablonu.
+// Token: kısa ömürlü access token (5 dk) — korumalı endpoint'lerde Authorization header'da kullanılır.
+// RefreshToken: uzun ömürlü token (60 dk) — access token süresi dolunca yenileme için gönderilir.
+public record LoginResponseDto(string Token, string Username, string Role, string RefreshToken);

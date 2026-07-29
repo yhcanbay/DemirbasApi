@@ -15,7 +15,7 @@ namespace DemirbasTakip.Api.Controllers;
 //   Spring'deki @RestController (yani @Controller + @ResponseBody) ile aynı mantık.
 [ApiController]
 [Route("api/auth")]
-public class AuthController : ControllerBase,IAuthController
+public class AuthController : ControllerBase, IAuthController
 {
     // Servise interface üzerinden erişiyoruz — somut sınıfı (AuthService) bilmiyoruz.
     private readonly IAuthService _authService;
@@ -46,6 +46,7 @@ public class AuthController : ControllerBase,IAuthController
     // [FromBody] = request body'deki JSON'ı LoginDto nesnesine dönüştür.
     //   Spring'deki @RequestBody LoginDto dto ile aynı.
     [HttpPost("login")]
+    [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
         // Servisi çağır: kullanıcı adı ve şifre doğrulansın, token üretilsin.
@@ -55,8 +56,41 @@ public class AuthController : ControllerBase,IAuthController
         if (result is null)
             return Unauthorized(new { message = "Kullanıcı adı veya şifre hatalı." });
 
-        // Başarılı: 200 OK + token, kullanıcı adı ve rol bilgisiyle cevap dön.
+        // Başarılı: 200 OK + access token, kullanıcı adı, rol ve refresh token döndür.
         return Ok(result);
+    }
+
+    // POST /api/auth/refresh
+    // Access token süresi dolduğunda istemci bu endpoint'e refresh token göndererek
+    // yeni bir access token alır. Başarılı olursa yeni refresh token da döner (Rotation).
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequestDto dto)
+    {
+        var result = await _authService.RefreshTokenAsync(dto.RefreshToken);
+
+        // null = refresh token geçersiz veya süresi dolmuş → kullanıcı tekrar login olmalı
+        if (result is null)
+            return Unauthorized(new { message = "Refresh token geçersiz veya süresi dolmuş. Lütfen tekrar giriş yapınız." });
+
+        return Ok(result);
+    }
+
+    // POST /api/auth/logout
+    // JWT token'dan kullanıcı Id'sini okur, o kullanıcının tüm refresh token'larını siler.
+    // [Authorize] gerekmez ama valid token beklenir (FallbackPolicy zaten zorunlu kılar).
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        // ClaimTypes.NameIdentifier = TokenService'te "new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())" ile set edildi.
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (userIdClaim is null || !int.TryParse(userIdClaim, out var userId))
+            return Unauthorized(new { message = "Geçersiz token." });
+
+        await _authService.LogoutAsync(userId);
+
+        return Ok(new { message = "Çıkış yapıldı." });
     }
 
     // ============================================================

@@ -9,6 +9,12 @@ public interface IAuthController
     [HttpPost("register")]
     Task<IActionResult> Register([FromBody] RegisterDto dto);
 
+    [HttpPost("refresh")]
+    Task<IActionResult> Refresh([FromBody] RefreshTokenRequestDto dto);
+
+    [HttpPost("logout")]
+    Task<IActionResult> Logout();
+
     // [HttpGet("me")]
     // public IActionResult Me();
-}
+}

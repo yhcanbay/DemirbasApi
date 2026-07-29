@@ -22,6 +22,7 @@ public class AppDbContext : DbContext
     public DbSet<AssetAssignment> AssetAssignments => Set<AssetAssignment>();
     public DbSet<PersonnelDepartment> PersonnelDepartments => Set<PersonnelDepartment>();
     public DbSet<Department> Departments => Set<Department>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     // OnModelCreating = Spring'deki @Entity konfigürasyonunun kod karşılığı.
     // Tablo ilişkilerini, seed datayı ve kısıtlamaları burada tanımlarız.
@@ -67,5 +68,14 @@ public class AppDbContext : DbContext
             .WithMany(d => d.PersonnelDepartments)                   // Department → PersonnelDepartment (1:N)
             .HasForeignKey(pd => pd.DepartmentId)                    // Foreign key sütunu: DepartmentId
             .OnDelete(DeleteBehavior.Restrict);                      // Sil engellensin
+
+        // --- RefreshToken İlişki Konfigürasyonu ---
+        // Bir kullanıcının birden fazla refresh token'ı olabilir (1:N).
+        // Kullanıcı silinirse refresh token'ları da otomatik silinsin (Cascade).
+        modelBuilder.Entity<RefreshToken>()
+            .HasOne(rt => rt.User)                    // RefreshToken → User (N:1)
+            .WithMany(u => u.RefreshTokens)           // User → RefreshToken (1:N)
+            .HasForeignKey(rt => rt.UserId)           // Foreign key sütunu: UserId
+            .OnDelete(DeleteBehavior.Cascade);        // Kullanıcı silinince token'lar da silinsin
     }
 }

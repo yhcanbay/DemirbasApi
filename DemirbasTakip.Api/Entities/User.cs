@@ -18,4 +18,8 @@ public class User
     // Navigation property: User nesnesine .Role deyince ilgili Role nesnesini getirir.
     // null! = "bu asla null olmayacak, ama derleyiciye güven" anlamında (C# nullable uyarısını susturur).
     public Role Role { get; set; } = null!;
-}
+
+    // Navigation property: Kullanıcının aktif refresh token'ları (1:N ilişki).
+    // Logout olunca hepsi silinir; her login'de yeni biri eklenir.
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+}
