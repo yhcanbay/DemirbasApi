@@ -39,7 +39,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // AddSingleton<T>() olsaydı tüm uygulama boyunca tek örnek olurdu.
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-// NOT: Faz 2'de AssetService, PersonnelService, AssignmentService buraya eklenecek.
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IPersonnelService, PersonnelService>();
+builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+builder.Services.AddScoped<IAssetService, AssetService>();
+builder.Services.AddScoped<IAssetAssignmentService, AssetAssignmentService>();
+
 
 // --- JWT kimlik doğrulamasını yapılandır ---
 // Spring Security'deki JwtAuthenticationFilter + SecurityFilterChain karşılığı.
@@ -64,10 +69,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // [Authorize] ve [Authorize(Roles = "Admin")] attribute'lerinin çalışması için gerekli.
 builder.Services.AddAuthorization(options =>
 {
+    // FallbackPolicy: Hiçbir attribute yazılmayan endpoint'ler için varsayılan kural.
+    // Sadece Admin rolündeki kullanıcılar erişebilir — her endpoint'e [Authorize(Roles="Admin")] yazmak zorunda kalmayız.
+    // User'ların da erişmesi gereken endpoint'lere [Authorize(Policy = "AllowedUser")] yazılır.
+    // Tamamen herkese açık endpoint'ler (login, register) [AllowAnonymous] alır.
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
-        .RequireAuthenticatedUser()
+        .RequireRole("Admin")
         .Build();
+
+    // "AllowedUser" policy: hem Admin hem de User rolündeki kullanıcılar erişebilir.
+    // Kullanım: [Authorize(Policy = "AllowedUser")]
+    options.AddPolicy("AllowedUser", policy =>
+        policy.RequireRole("Admin", "User"));
 });
+
 
 // --- CORS (Cross-Origin Resource Sharing) ---
 // Tarayıcı güvenlik politikası: frontend (Vue, localhost:5173) farklı port'tan backend'e istek atabilsin.
@@ -131,7 +146,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Controller sınıflarındaki [HttpGet], [HttpPost] vs. attribute'ler çalışsın.
-app.MapControllers();
+app.MapGroup("/api").MapControllers();
 
 // ============================================================
 // B.5.9 — Geçici Hash Üretme Endpoint'i

@@ -1,120 +1,95 @@
-using Microsoft.AspNetCore.Authorization;  // [Authorize] attribute için
-using Microsoft.AspNetCore.Mvc;            // ControllerBase, IActionResult, HttpPost vs. için
-using System.Security.Claims;             // ClaimTypes için
-using DemirbasTakip.Api.DTOs;             // LoginDto için
-using DemirbasTakip.Api.Services;         // IAuthService için
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using DemirbasTakip.Api.Common;
+using DemirbasTakip.Api.DTOs;
+using DemirbasTakip.Api.Services;
 
-// Controllers isim uzayı — tüm controller'lar burada.
 namespace DemirbasTakip.Api.Controllers;
 
-// [ApiController]: JSON serileştirme, model doğrulama gibi API özelliklerini otomatik açar.
-//   Spring'deki @RestController gibi düşün.
-// [Route("api/auth")]: Bu controller'ın tüm endpoint'leri "/api/auth/..." ile başlar.
-//   Spring'deki @RequestMapping("/api/auth") gibi.
-// ControllerBase: View (HTML sayfası) döndürmez; saf API için kullanılır.
-//   Spring'deki @RestController (yani @Controller + @ResponseBody) ile aynı mantık.
 [ApiController]
-[Route("api/auth")]
+[Route("auth")]
 public class AuthController : ControllerBase, IAuthController
 {
-    // Servise interface üzerinden erişiyoruz — somut sınıfı (AuthService) bilmiyoruz.
     private readonly IAuthService _authService;
 
-    // DI sistemi IAuthService'i otomatik olarak AuthService örneğiyle doldurur.
     public AuthController(IAuthService authService) => _authService = authService;
 
+    // POST /api/auth/register
+    // FallbackPolicy → sadece Admin çağırabilir.
     [HttpPost("register")]
-    [AllowAnonymous]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
         var result = await _authService.RegisterAsync(dto.Username, dto.Password, dto.RoleName);
 
-        // null = kullanıcı adı zaten mevcut
         if (result is null)
-            return Conflict(new { message = "Bu kullanıcı adı zaten alınmış." });
+            return Conflict(ApiResponse.Fail("Bu kullanıcı adı zaten alınmış."));
 
-        // false = geçersiz rol adı
         if (result == false)
-            return BadRequest(new { message = "Geçersiz rol adı. 'Admin' veya 'User' olmalıdır." });
+            return BadRequest(ApiResponse.Fail("Geçersiz rol adı. 'Admin' veya 'User' olmalıdır."));
 
-        // 201 Created: kayıt başarılı, istemci login sayfasına yönlendirilmeli.
-        return StatusCode(201, new { message = "Kayıt başarılı. Lütfen giriş yapınız." });
+        return StatusCode(201, ApiResponse.Ok("Kullanıcı başarıyla oluşturuldu."));
     }
 
     // POST /api/auth/login
-    // [HttpPost("login")] = Spring'deki @PostMapping("/login") ile aynı.
-    // [FromBody] = request body'deki JSON'ı LoginDto nesnesine dönüştür.
-    //   Spring'deki @RequestBody LoginDto dto ile aynı.
+    // [AllowAnonymous]: Token olmadan herkes erişebilir.
     [HttpPost("login")]
     [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
-        // Servisi çağır: kullanıcı adı ve şifre doğrulansın, token üretilsin.
         var result = await _authService.LoginAsync(dto.Username, dto.Password);
 
-        // Sonuç null ise kullanıcı adı/şifre yanlış — 401 döndür.
         if (result is null)
-            return Unauthorized(new { message = "Kullanıcı adı veya şifre hatalı." });
+            return Unauthorized(ApiResponse.Fail("Kullanıcı adı veya şifre hatalı."));
 
-        // Başarılı: 200 OK + access token, kullanıcı adı, rol ve refresh token döndür.
-        return Ok(result);
+        return Ok(ApiResponse<LoginResponseDto>.Ok(result));
     }
 
     // POST /api/auth/refresh
-    // Access token süresi dolduğunda istemci bu endpoint'e refresh token göndererek
-    // yeni bir access token alır. Başarılı olursa yeni refresh token da döner (Rotation).
+    // [AllowAnonymous]: Süresi dolmuş access token yerine refresh token gönderilir.
     [HttpPost("refresh")]
     [AllowAnonymous]
     public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequestDto dto)
     {
         var result = await _authService.RefreshTokenAsync(dto.RefreshToken);
 
-        // null = refresh token geçersiz veya süresi dolmuş → kullanıcı tekrar login olmalı
         if (result is null)
-            return Unauthorized(new { message = "Refresh token geçersiz veya süresi dolmuş. Lütfen tekrar giriş yapınız." });
+            return Unauthorized(ApiResponse.Fail("Refresh token geçersiz veya süresi dolmuş. Lütfen tekrar giriş yapınız."));
 
-        return Ok(result);
+        return Ok(ApiResponse<LoginResponseDto>.Ok(result));
     }
 
     // POST /api/auth/logout
-    // JWT token'dan kullanıcı Id'sini okur, o kullanıcının tüm refresh token'larını siler.
-    // [Authorize] gerekmez ama valid token beklenir (FallbackPolicy zaten zorunlu kılar).
+    // FallbackPolicy → geçerli token gereklidir.
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
-        // ClaimTypes.NameIdentifier = TokenService'te "new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())" ile set edildi.
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (userIdClaim is null || !int.TryParse(userIdClaim, out var userId))
-            return Unauthorized(new { message = "Geçersiz token." });
+            return Unauthorized(ApiResponse.Fail("Geçersiz token."));
 
         await _authService.LogoutAsync(userId);
 
-        return Ok(new { message = "Çıkış yapıldı." });
+        return Ok(ApiResponse.Ok("Çıkış yapıldı."));
     }
 
-    // ============================================================
-    // MİKROSERVİS NOTU: GET /api/auth/me
-    // Bu endpoint şu an monolitik mimaride kullanılmamaktadır.
-    // Monolitik yapıda her [Authorize] attribute'ü token'ı zaten otomatik
-    // doğular; ayrıca bir /me endpoint'ine gerek yoktur.
-    //
-    // İleride mikroservis mimarisine geçilmesi durumunda bu endpoint devreye alınır:
-    //   - Asset Servisi, Kargo Servisi gibi bağımsız servisler JWT secret key'e
-    //     sahip olmaz; token'ı doğrulamak için Auth Servisi'ne (bu endpoint'e) sorar.
-    //   - Token iptali (logout, hesap askıya alma) senaryolarında da merkezi
-    //     doğrulama noktası olarak kullanılır.
-    //
-    // Aktif etmek için: aşağıdaki yorum satırlarını kaldır.
-    // ============================================================
+    // GET /api/auth/me
+    // [Authorize(Policy = "AllowedUser")]: Hem Admin hem User erişebilir.
+    // Token'daki claim'lerden kullanıcı bilgisini okur — DB sorgusu yapmaz.
+    // Kullanım: Frontend token'ın hangi kullanıcıya ait olduğunu doğrulamak ister.
+    [HttpGet("me")]
+    [Authorize(Policy = "AllowedUser")]
+    public IActionResult Me()
+    {
+        var userIdClaim  = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var username     = User.FindFirstValue(ClaimTypes.Name);
+        var role         = User.FindFirstValue(ClaimTypes.Role);
 
-    //[HttpGet("me")]
-    //[Authorize]
-    //public IActionResult Me()
-    //{
-    //    var username = User.Identity?.Name;
-    //    var role = User.FindFirst(ClaimTypes.Role)?.Value;
-    //
-    //    return Ok(new { username, role });
-    //}
+        if (userIdClaim is null || !int.TryParse(userIdClaim, out var userId))
+            return Unauthorized(ApiResponse.Fail("Geçersiz token."));
+
+        var dto = new MeResponseDto(userId, username ?? string.Empty, role ?? string.Empty);
+        return Ok(ApiResponse<MeResponseDto>.Ok(dto));
+    }
 }

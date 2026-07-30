@@ -8,10 +8,17 @@ public class Personnel
     // Ad Soyad
     public string FullName { get; set; } = string.Empty;
 
+    // Foreign key: bu personel kaydının bağlı olduğu kullanıcı hesabı.
+    // Personnel "bağımlı" (dependent) taraftır; 1:1 ilişkide FK burada tutulur.
+    public int UserId { get; set; }
+
+    // Navigation property: ilgili User nesnesine erişim sağlar.
+    public User User { get; set; } = null!;
+
     // Personelin çalıştığı departmanlar — M2M ilişki (geçmiş kayıtlar dahil).
     // Aktif departman: PersonnelDepartments.Where(pd => pd.EndDate == null)
     public ICollection<PersonnelDepartment> PersonnelDepartments { get; set; } = new List<PersonnelDepartment>();
 
     // Bu personele ait tüm zimmet kayıtları (geçmiş + aktif).
     public ICollection<AssetAssignment> Assignments { get; set; } = new List<AssetAssignment>();
-}
+}

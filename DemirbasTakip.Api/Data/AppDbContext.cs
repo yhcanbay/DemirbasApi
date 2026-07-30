@@ -77,5 +77,15 @@ public class AppDbContext : DbContext
             .WithMany(u => u.RefreshTokens)           // User → RefreshToken (1:N)
             .HasForeignKey(rt => rt.UserId)           // Foreign key sütunu: UserId
             .OnDelete(DeleteBehavior.Cascade);        // Kullanıcı silinince token'lar da silinsin
+
+        // --- Personnel ↔ User 1:1 İlişki Konfigürasyonu ---
+        // Personnel "bağımlı" (dependent) taraftır; FK (UserId) Personnel tablosundadır.
+        // User tarafında navigation property tanımlamadık — WithOne() boş bırakıldı.
+        // OnDelete(Restrict) = User silinmek istenirse önce personel kaydı kaldırılmalıdır.
+        modelBuilder.Entity<Personnel>()
+            .HasOne(p => p.User)                        // Personnel → User (1:1)
+            .WithOne()                                  // User tarafında navigation yok
+            .HasForeignKey<Personnel>(p => p.UserId)    // FK sütunu: Personnel.UserId
+            .OnDelete(DeleteBehavior.Restrict);         // User silinince personel kalır
     }
 }
